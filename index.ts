@@ -337,11 +337,13 @@ app.post(
 
 		let browser: Browser | undefined;
 		try {
+			// In Docker/production, we need headless mode
+			const isHeadless = process.env.NODE_ENV === "production" || process.env.HEADLESS === "true";
 			console.log(
-				`[TikTok] Launching browser (headless: ${process.env.NODE_ENV === "production"})`
+				`[TikTok] Launching browser (headless: ${isHeadless})`
 			);
 			browser = await puppeteer.launch({
-				headless: process.env.NODE_ENV === "production",
+				headless: isHeadless,
 				args: ["--no-sandbox", "--disable-setuid-sandbox"],
 			});
 			const page = await browser.newPage();

@@ -35,9 +35,9 @@ RUN mkdir -p downloads && chmod 777 downloads
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
-# The user is using headless: false in index.js. 
-# In Docker, we usually need headless: true or a virtual display.
-# For now, I'll keep the Dockerfile standard and suggest a change if needed.
+# Set environment for production/headless mode in Docker
+ENV NODE_ENV=production
+ENV HEADLESS=true
 
 # Expose the API port (defaulting to 3000 if not set)
 EXPOSE 3000

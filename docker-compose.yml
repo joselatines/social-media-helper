@@ -3,8 +3,10 @@ services:
     image: postgres:16-alpine
     container_name: social-media-helper-db
     restart: always
-    env_file:
-      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "${DB_PORT}:5432"
     volumes:
@@ -14,6 +16,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - app-network
 
   api:
     build: .
@@ -22,6 +26,8 @@ services:
       - "${PORT}:${PORT}"
     env_file:
       - .env
+    environment:
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public"
     volumes:
       - ./downloads:/app/downloads
     depends_on:
@@ -29,6 +35,12 @@ services:
         condition: service_healthy
     restart: always
     command: sh -c "npx prisma migrate deploy && pnpm start"
+    networks:
+      - app-network
 
 volumes:
   postgres_data:
+
+networks:
+  app-network:
+    driver: bridge

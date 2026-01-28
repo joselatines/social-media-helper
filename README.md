@@ -1,66 +1,100 @@
-# Social Media Downloader API 🚀
+# Social Media Helper API 🚀
 
-A powerful and simplified API to download social media content, built with Puppeteer and Express. Currently optimized for high-performance TikTok video scraping.
+A powerful and simplified API to download social media content, built with Puppeteer, Express, and Prisma (PostgreSQL).
 
-## 🌟 Features
-- **TikTok Scraper**: Full video download support via context-menu interaction.
-- **Security**: JWT-based API tokens with request limits.
-- **Persistence**: Usage tracking via local JSON data.
-- **Dockerized**: Ready to deploy with Docker and Docker Compose.
-- **Swagger Documentation**: Interactive API testing out of the box.
+> **Important Note:** This project is the result of a **Vibe Coding** session. It was developed rapidly using AI to prototype competitive ideas in record time.
 
----
-
-## 🛠️ Usage Options
-
-### 1. ☁️ Use Our Hosted Version (Freemium/Paid)
-If you don't want to manage your own server, you can use our hosted API. 
-To get an API token, you need to negotiate with the administrator:
-
-- **Admin Contact**: Reach out via X (formerly Twitter) to [**@greggFlx**](https://x.com/greggFlx).
-- **Pricing**: Flexible plans based on request credits.
-
-### 2. 🏠 Self-Hosting (For Technical Users)
-You can easily host this API on your own infrastructure.
-
-#### Prerequisites
-- Node.js (v20+) or Docker.
-- `pnpm` (recommended).
-
-#### Quick Start (Native)
-1. Clone the repo.
-2. Install dependencies: `pnpm install`
-3. Configure your `.env` (use `.env.example` as a template).
-4. Start the server: `pnpm start`
-
-#### Quick Start (Docker)
-1. Configure your `.env`.
-2. Run: `docker-compose up --build`
+## 🌟 Current Features
+- **TikTok Scraper**: Video download support by simulating browser interactions.
+- **Security**: JWT-based API tokens with request limits per user.
+- **Persistence**: Token and user management using a PostgreSQL database.
+- **Dockerized**: Production-ready configuration with Docker Compose.
+- **Swagger Documentation**: Testing the API is as easy as opening your browser.
 
 ---
 
-## 🔒 Security Configuration
-Ensure you set the following in your `.env`:
-- `ADMIN_EMAIL` & `ADMIN_PASS`: For generating user tokens.
-- `JWT_SECRET`: A long random string to sign tokens.
+## ☁️ Hosted Access (No setup required)
+If you don't want to deal with self-hosting, you can use our hosted API. 
+To get an API token for our server, please reach out via X (Twitter):
+- **Admin Contact**: [**@greggFlx**](https://x.com/greggFlx)
 
-To generate a token for a user:
-`POST /generate-api-token` with the admin credentials in the body.
+---
+
+## 🛠️ Local Installation and Setup
+
+### Prerequisites
+- Node.js (v20+)
+- `pnpm` (recommended)
+- A PostgreSQL instance (or Docker installed)
+
+### Steps to run locally:
+
+1. **Clone the repository.**
+
+2. **Install dependencies:**
+   ```bash
+   pnpm install
+   ```
+
+3. **Configure the environment:**
+   Copy the `.env.example` file to `.env` and fill in the variables:
+   ```bash
+   PORT=3000
+   DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/DATABASE"
+   ADMIN_EMAIL="admin@example.com"
+   ADMIN_PASS="your_secure_password"
+   JWT_SECRET="a_very_long_secret"
+   ```
+
+4. **Prepare the database:**
+   ```bash
+   npx prisma generate
+   npx prisma migrate dev --name init
+   ```
+
+5. **Start the server:**
+   ```bash
+   pnpm start
+   ```
+
+---
+
+## 🐳 Quick Start with Docker
+
+If you have Docker installed, you can spin up the entire stack (API + PostgreSQL) with a single command:
+
+1. Make sure your `.env` file is configured.
+2. Run:
+   ```bash
+   docker-compose up --build
+   ```
+
+The API will be available at `http://localhost:${PORT}`.
+
+---
+
+## 📝 API Documentation
+
+Once the server is running, you can access the interactive documentation at:
+`http://localhost:3000/api-docs`
+
+---
+
+## 🚀 RoadMap (Future)
+This project started as a download tool, but we plan to expand it into a full social media "Helper":
+- [ ] Endpoint to fetch post comments.
+- [ ] DM automation.
+- [ ] Support for Instagram, X (Twitter), and YouTube.
+- [ ] Sentiment analysis on comments.
 
 ---
 
 ## 🧪 Testing
-Run the automated test suite to verify everything is working:
+To run the automated test suite:
 ```bash
 pnpm test
 ```
 
 ---
 
-## 📝 API Documentation
-Once the server is running, visit:
-`http://localhost:3000/api-docs`
-
----
-
-Built with ❤️ by [Jose](https://github.com/joselatines) and IA jeje.
+Built with ❤️ after an intense Vibe Coding session. Constantly improving.

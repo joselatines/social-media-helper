@@ -42,5 +42,8 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 # Expose the API port (defaulting to 3000 if not set)
 EXPOSE 3000
 
+# Generate Prisma Client
+RUN npx prisma generate
+
 # Start the application
 CMD [ "pnpm", "start" ]

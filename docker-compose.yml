@@ -1,15 +1,34 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: social-media-helper-db
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build: .
+    container_name: social-media-helper-api
     ports:
-      - "${PORT:-3000}:${PORT:-3000}"
-    environment:
-      - PORT=${PORT:-3000}
-      - NODE_ENV=production
-      - ADMIN_EMAIL=${ADMIN_EMAIL}
-      - ADMIN_PASS=${ADMIN_PASS}
-      - JWT_SECRET=${JWT_SECRET}
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
     volumes:
       - ./downloads:/app/downloads
-      - ./data.json:/app/data.json
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: always
+    command: sh -c "npx prisma migrate deploy && pnpm start"
+
+volumes:
+  postgres_data:

@@ -82,9 +82,18 @@ function cleanupExpired() {
   saveData(data);
 }
 
+/**
+ * Get all tokens
+ */
+function getAllTokens() {
+  const data = loadData();
+  return data.tokens;
+}
+
 module.exports = {
   saveToken,
   getToken,
+  getAllTokens,
   incrementUsage,
   cleanupExpired
 };

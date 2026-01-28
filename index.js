@@ -100,10 +100,11 @@ const authenticateToken = (req, res, next) => {
 
 /**
  * @swagger
- * /generate-api-token:
+ * /admin/generate-token:
  *   post:
  *     summary: Generate a limited API token (Admin only)
  *     description: Creates a 30-day token with a specific request limit. Requires admin credentials.
+ *     tags: [Admin]
  *     requestBody:
  *       required: true
  *       content:
@@ -127,11 +128,9 @@ const authenticateToken = (req, res, next) => {
  *       401:
  *         description: Unauthorized - Invalid admin credentials
  */
-app.post("/generate-api-token", (req, res) => {
+app.post("/admin/generate-token", (req, res) => {
 	const { email, allowedRequests, adminEmail, adminPass } = req.body;
 
-	console.log(adminEmail, adminPass);
-	console.log(ADMIN_EMAIL, ADMIN_PASS);
 	if (adminEmail !== ADMIN_EMAIL || adminPass !== ADMIN_PASS) {
 		return res.status(401).json({ error: "Invalid admin credentials" });
 	}
@@ -158,6 +157,74 @@ app.post("/generate-api-token", (req, res) => {
 	} catch (error) {
 		res.status(500).json({ error: "Failed to store token" });
 	}
+});
+
+/**
+ * @swagger
+ * /admin/tokens:
+ *   post:
+ *     summary: List all tokens (Admin only)
+ *     description: Returns a list of all generated tokens and their usage. Requires admin credentials.
+ *     tags: [Admin]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               adminEmail:
+ *                 type: string
+ *               adminPass:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: List of tokens retrieved successfully
+ */
+app.post("/admin/tokens", (req, res) => {
+	const { adminEmail, adminPass } = req.body;
+
+	if (adminEmail !== ADMIN_EMAIL || adminPass !== ADMIN_PASS) {
+		return res.status(401).json({ error: "Invalid admin credentials" });
+	}
+
+	try {
+		const tokens = db.getAllTokens();
+		res.json({ success: true, tokens });
+	} catch (error) {
+		res.status(500).json({ error: "Failed to retrieve tokens" });
+	}
+});
+
+/**
+ * @swagger
+ * /validate-token:
+ *   get:
+ *     summary: Validate your API token (User)
+ *     description: Returns authentication status and request balance for the provided token.
+ *     tags: [Utility]
+ *     security:
+ *       - ApiKeyAuth: []
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *       401:
+ *         description: Invalid or missing token
+ */
+app.get("/validate-token", authenticateToken, (req, res) => {
+	const tokenData = db.getToken(req.userToken);
+	if (!tokenData) {
+		return res.status(404).json({ error: "Token data missing" });
+	}
+	
+	res.json({
+		success: true,
+		email: tokenData.email,
+		allowed_requests: tokenData.allowed_requests,
+		used_requests: tokenData.used_requests,
+		remaining_requests: tokenData.allowed_requests - tokenData.used_requests,
+		expires_at: tokenData.expires_at
+	});
 });
 
 /**

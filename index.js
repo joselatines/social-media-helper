@@ -9,9 +9,14 @@ const db = require("./database");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_change_me";
+const JWT_SECRET = process.env.JWT_SECRET;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const ADMIN_PASS = process.env.ADMIN_PASS;
+
+if (!JWT_SECRET || !ADMIN_EMAIL || !ADMIN_PASS) {
+	console.error("Missing environment variables. Please check your .env file.");
+	process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,10 +28,10 @@ const swaggerOptions = {
 		info: {
 			title: "Social Media Downloader API",
 			version: "1.0.0",
-			description: "API for downloading social media content with request limits. For hosted access, negotiate with @gregg33 on x.com.",
+			description: "API for downloading social media content with request limits. For hosted access, negotiate with @greggFlx on x.com.",
 			contact: {
-				name: "Admin (@gregg33)",
-				url: "https://x.com/gregg33",
+				name: "Admin (@greggFlx)",
+				url: "https://x.com/greggFlx",
 			},
 		},
 		components: {

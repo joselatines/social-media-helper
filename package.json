@@ -1,0 +1,22 @@
+{
+	"name": "social-media-downloader",
+	"version": "1.0.0",
+	"description": "",
+	"keywords": [
+		"tiktok"
+	],
+	"license": "ISC",
+	"author": "Flexzin Creations",
+	"type": "commonjs",
+	"main": "index.js",
+	"scripts": {
+		"start": "node index.js",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"dependencies": {
+		"express": "^5.2.1",
+		"puppeteer": "^24.36.1",
+		"swagger-jsdoc": "^6.2.8",
+		"swagger-ui-express": "^5.0.1"
+	}
+}

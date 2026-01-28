@@ -6,6 +6,10 @@ services:
     environment:
       - PORT=${PORT:-3000}
       - NODE_ENV=production
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASS=${ADMIN_PASS}
+      - JWT_SECRET=${JWT_SECRET}
     volumes:
       - ./downloads:/app/downloads
+      - ./data.json:/app/data.json
     restart: always

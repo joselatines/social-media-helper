@@ -4,6 +4,14 @@ const swaggerJSDoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 const fs = require("fs");
 const path = require("path");
+const jwt = require("jsonwebtoken");
+const db = require("./database");
+const dotenv = require("dotenv");
+dotenv.config();
+
+const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret_change_me";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const ADMIN_PASS = process.env.ADMIN_PASS;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,7 +23,20 @@ const swaggerOptions = {
 		info: {
 			title: "Social Media Downloader API",
 			version: "1.0.0",
-			description: "API for downloading social media content",
+			description: "API for downloading social media content with request limits. For hosted access, negotiate with @gregg33 on x.com.",
+			contact: {
+				name: "Admin (@gregg33)",
+				url: "https://x.com/gregg33",
+			},
+		},
+		components: {
+			securitySchemes: {
+				ApiKeyAuth: {
+					type: "apiKey",
+					in: "header",
+					name: "x-api-token",
+				},
+			},
 		},
 	},
 	apis: ["./index.js"], // path to the API docs
@@ -26,12 +47,122 @@ const swaggerSpec = swaggerJSDoc(swaggerOptions);
 app.use(express.json());
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// Authentication Middleware
+const authenticateToken = (req, res, next) => {
+	const token = req.header("x-api-token");
+
+	if (!token) {
+		return res.status(401).json({ 
+			error: "API token is required", 
+			help: "Please provide a valid token in the 'x-api-token' header. Contact admin to generate one." 
+		});
+	}
+
+	try {
+		// 1. Verify JWT signature and expiry (30 days)
+		const decoded = jwt.verify(token, JWT_SECRET);
+		
+		// 2. Check SQLite for request limits
+		const tokenData = db.getToken(token);
+		
+		if (!tokenData) {
+			return res.status(403).json({ 
+				error: "Invalid or revoked token",
+				help: "This token does not exist in our records."
+			});
+		}
+
+		console.log(`Left requests: ${tokenData.allowed_requests - tokenData.used_requests} of ${tokenData.allowed_requests}`);
+		if (tokenData.used_requests >= tokenData.allowed_requests) {
+			return res.status(402).json({ 
+				error: "Request limit exceeded",
+				help: `You have used all ${tokenData.allowed_requests} allowed requests. Contact admin to increase your limit.`
+			});
+		}
+
+		// Attach user info to request
+		req.userToken = token;
+		req.userEmail = decoded.email;
+		next();
+	} catch (err) {
+		return res.status(401).json({ 
+			error: "Invalid or expired token", 
+			details: err.message,
+			help: "Tokens expire after 30 days. Please request a new one."
+		});
+	}
+};
+
+/**
+ * @swagger
+ * /generate-api-token:
+ *   post:
+ *     summary: Generate a limited API token (Admin only)
+ *     description: Creates a 30-day token with a specific request limit. Requires admin credentials.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "user@example.com"
+ *               allowedRequests:
+ *                 type: integer
+ *                 example: 50
+ *               adminEmail:
+ *                 type: string
+ *               adminPass:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token generated successfully
+ *       401:
+ *         description: Unauthorized - Invalid admin credentials
+ */
+app.post("/generate-api-token", (req, res) => {
+	const { email, allowedRequests, adminEmail, adminPass } = req.body;
+
+	console.log(adminEmail, adminPass);
+	console.log(ADMIN_EMAIL, ADMIN_PASS);
+	if (adminEmail !== ADMIN_EMAIL || adminPass !== ADMIN_PASS) {
+		return res.status(401).json({ error: "Invalid admin credentials" });
+	}
+
+	if (!email || !allowedRequests) {
+		return res.status(400).json({ error: "Email and allowedRequests are required" });
+	}
+
+	// Generate 30-day JWT
+	const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "30d" });
+
+	// Store in DB
+	const expiresAt = new Date();
+	expiresAt.setDate(expiresAt.getDate() + 30);
+
+	try {
+		db.saveToken(token, email, allowedRequests, expiresAt.toISOString());
+		return res.json({ 
+			success: true, 
+			token, 
+			expiresAt: expiresAt.toISOString(),
+			allowedRequests 
+		});
+	} catch (error) {
+		res.status(500).json({ error: "Failed to store token" });
+	}
+});
+
 /**
  * @swagger
  * /tiktok:
  *   post:
  *     summary: Scrape TikTok video data
- *     description: Extracts data from a TikTok URL using Puppeteer
+ *     description: Extracts data from a TikTok URL using Puppeteer. Requires a valid API token.
+ *     security:
+ *       - ApiKeyAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -84,8 +215,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *                   type: string
  *                   example: "Failed to scrape TikTok"
  */
-app.post("/tiktok", async (req, res) => {
-	console.log(req.body);
+app.post("/tiktok", authenticateToken, async (req, res) => {
 	const url = req.body.url;
 
 	if (!url) {
@@ -219,7 +349,9 @@ app.post("/tiktok", async (req, res) => {
 			if (err) {
 				console.error("[TikTok] Error sending file:", err);
 			} else {
-				console.log("[TikTok] File sent successfully. Cleaning up...");
+				console.log("[TikTok] File sent successfully. Incrementing usage...");
+				db.incrementUsage(req.userToken);
+				console.log("[TikTok] Usage incremented. Cleaning up...");
 			}
 			// Cleanup
 			if (fs.existsSync(downloadedFile)) {
@@ -237,6 +369,10 @@ app.post("/tiktok", async (req, res) => {
 	}
 });
 
-app.listen(PORT, () => {
-	console.log(`Server running on port http://localhost:${PORT} | look at the docs at http://localhost:${PORT}/api-docs`);
-});
+if (require.main === module) {
+	app.listen(PORT, () => {
+		console.log(`Server running on port http://localhost:${PORT} | look at the docs at http://localhost:${PORT}/api-docs`);
+	});
+}
+
+module.exports = app;
